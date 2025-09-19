@@ -1,4 +1,4 @@
-name: Sync Fork All Branches
+name: Sync Fork All Branches (Merge)
 
 on:
   schedule:
@@ -9,26 +9,35 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      # 1️⃣ Checkout
       - name: Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
+      # 2️⃣ Git 配置
       - name: Set Git Config
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      # 3️⃣ 添加 upstream
       - name: Add upstream
         run: |
           git remote add upstream https://github.com/GameFrameX/GameFrameX.Unity.git
           git fetch upstream --prune
 
-      - name: Sync all branches
+      # 4️⃣ 设置 push 权限
+      - name: Set push auth
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
+      # 5️⃣ 合并所有分支
+      - name: Merge all branches
         run: |
           for branch in $(git branch -r | grep "upstream/" | sed 's/upstream\///' | grep -v "HEAD"); do
-            echo "🔄 Syncing branch: $branch"
-            git checkout -B $branch upstream/$branch
-            git push origin $branch --force
+            echo "🔄 Merging branch: $branch"
+            git checkout -B $branch origin/$branch || git checkout -B $branch upstream/$branch
+            git pull --no-rebase upstream $branch
+            git push origin $branch
           done
-
