@@ -1,288 +1,33 @@
-name: Sync Github To Image
+name: Sync Fork All Branches
 
 on:
-  push:
-    branches: [main]
-  #schedule:
-    # 定时任务，每天 UTC 时间 0 点运行
-    #- cron: "0 0 * * *"
-  #workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'   # 每天 0 点自动运行
+  workflow_dispatch:       # 允许手动触发
 
 jobs:
-  sync-gitlink:
+  sync:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 为了 git pull --unshallow，我们需要获取所有的提交历史
+          persist-credentials: false
 
-      - name: Set up Git user
+      - name: Set Git Config
         run: |
-          git config --global user.email "wangfj11@foxmail.com"
-          git config --global user.name "AlianBlank"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Set SSH
+      - name: Add upstream
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GITLINK_ID_RSA }}" >> ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          eval $(ssh-agent -s) && ssh-add ~/.ssh/id_rsa
-          # 信任域名
-          ssh-keyscan -H code.gitlink.org.cn >> ~/.ssh/known_hosts
+          git remote add upstream https://github.com/GameFrameX/GameFrameX.Unity.git
+          git fetch upstream --prune
 
-      # 查看当前分支
-      - name: Check current branch
-        run: echo 当前分支：${{ github.ref_name }} ${{ github.Repository }}
-
-      # 查看远端 地址
-      - name: echo git url
-        run: echo git@code.gitlink.org.cn:${{ github.Repository }}.git
-
-      # 添加远端
-      - name: add remote url
-        run: git remote add gitlink "git@code.gitlink.org.cn:${{ github.Repository }}.git"
-
-      # 获取
-      - name: fetch
-        run: git fetch --prune gitlink --tags --verbose
-
-      # 拉取
-      - name: pull and push
-        run: | 
-          if [ "${{ github.ref_name }}" ]; then
-          git checkout ${{ github.ref_name }}
-          git pull --progress -v --no-rebase gitlink ${{ github.ref_name }} --tags --verbose || echo 远端不存在${{ github.ref_name }}分支;
-          git push -u gitlink ${{ github.ref_name }} --tags --verbose
-          fi
-
-  sync-gitlab:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # 为了 git pull --unshallow，我们需要获取所有的提交历史
-
-      - name: Set up Git user
+      - name: Sync all branches
         run: |
-          git config --global user.email "wangfj11@foxmail.com"
-          git config --global user.name "AlianBlank"
-
-      - name: Set SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GITLAB_ID_RSA }}" >> ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          eval $(ssh-agent -s) && ssh-add ~/.ssh/id_rsa
-          # 信任域名
-          ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts
-      # 查看当前分支
-      - name: Check current branch
-        run: echo 当前分支：${{ github.ref_name }} ${{ github.Repository }}
-      # 查看远端 地址
-      - name: echo git url
-        run: echo git@gitlab.com:${{ github.Repository }}.git
-
-      # 添加远端
-      - name: add remote url
-        run: git remote add gitlab "git@gitlab.com:${{ github.Repository }}.git"
-
-      # 获取
-      - name: fetch
-        run: git fetch --prune gitlab --tags --verbose
-
-      # 拉取
-      - name: pull and push
-        run: | 
-          if [ "${{ github.ref_name }}" ]; then
-          git checkout ${{ github.ref_name }}
-          git pull --progress -v --no-rebase gitlab ${{ github.ref_name }} --tags --verbose || echo 远端不存在${{ github.ref_name }}分支;
-          git push -u gitlab ${{ github.ref_name }} --tags --verbose
-          fi
-
-  sync-gitee:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # 为了 git pull --unshallow，我们需要获取所有的提交历史
-
-      - name: Set up Git user
-        run: |
-          git config --global user.email "wangfj11@foxmail.com"
-          git config --global user.name "AlianBlank"
-
-      - name: Set SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GITEE_ID_RSA }}" >> ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          eval $(ssh-agent -s) && ssh-add ~/.ssh/id_rsa
-          # 信任域名
-          ssh-keyscan -H gitee.com >> ~/.ssh/known_hosts
-      # 查看当前分支
-      - name: Check current branch
-        run: echo 当前分支：${{ github.ref_name }} ${{ github.Repository }}
-      # 查看远端 地址
-      - name: echo git url
-        run: echo git@gitee.com:${{ github.Repository }}.git
-
-      # 添加远端
-      - name: add remote url
-        run: git remote add gitee "git@gitee.com:${{ github.Repository }}.git"
-
-      # 获取
-      - name: fetch
-        run: git fetch --prune gitee --tags --verbose
-
-      # 拉取
-      - name: pull and push
-        run: | 
-          if [ "${{ github.ref_name }}" ]; then
-          git checkout ${{ github.ref_name }}
-          git pull --progress -v --no-rebase gitee ${{ github.ref_name }} --tags --verbose || echo 远端不存在${{ github.ref_name }}分支;
-          git push -u gitee ${{ github.ref_name }} --tags --verbose
-          fi
-
-  sync-atomgit:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # 为了 git pull --unshallow，我们需要获取所有的提交历史
-
-      - name: Set up Git user
-        run: |
-          git config --global user.email "wangfj11@foxmail.com"
-          git config --global user.name "AlianBlank"
-
-      - name: Set SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ATOMGIT_ID_RSA }}" >> ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          eval $(ssh-agent -s) && ssh-add ~/.ssh/id_rsa
-          # 信任域名
-          ssh-keyscan -H atomgit.com >> ~/.ssh/known_hosts
-      # 查看当前分支
-      - name: Check current branch
-        run: echo 当前分支：${{ github.ref_name }} ${{ github.Repository }}
-      # 查看远端 地址
-      - name: echo git url
-        run: echo git@atomgit.com:${{ github.Repository }}.git
-
-      # 添加远端
-      - name: add remote url
-        run: git remote add atomgit "git@atomgit.com:${{ github.Repository }}.git"
-
-      # 获取
-      - name: fetch
-        run: git fetch --prune atomgit --tags --verbose
-
-      # 拉取
-      - name: pull and push
-        run: | 
-          if [ "${{ github.ref_name }}" ]; then
-          git checkout ${{ github.ref_name }}
-          git pull --progress -v --no-rebase atomgit ${{ github.ref_name }} --tags --verbose || echo 远端不存在${{ github.ref_name }}分支;
-          git push -u atomgit ${{ github.ref_name }} --tags --verbose
-          fi
-
-  sync-gitcode:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # 为了 git pull --unshallow，我们需要获取所有的提交历史
-
-      - name: Set up Git user
-        run: |
-          git config --global user.email "wangfj11@foxmail.com"
-          git config --global user.name "AlianBlank"
-
-      - name: Set SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GITCODE_ID_RSA }}" >> ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          eval $(ssh-agent -s) && ssh-add ~/.ssh/id_rsa
-          # 信任域名
-          ssh-keyscan -H gitcode.net >> ~/.ssh/known_hosts
-      # 查看当前分支
-      - name: Check current branch
-        run: echo 当前分支：${{ github.ref_name }} ${{ github.Repository }}
-      # 查看远端 地址
-      - name: echo git url
-        run: echo git@gitcode.net:${{ github.Repository }}.git
-
-      # 添加远端
-      - name: add remote url
-        run: git remote add gitcode "git@gitcode.net:${{ github.Repository }}.git"
-
-      # 获取
-      - name: fetch
-        run: git fetch --prune gitcode --tags --verbose
-
-      # 拉取
-      - name: pull and push
-        run: | 
-          if [ "${{ github.ref_name }}" ]; then
-          git checkout ${{ github.ref_name }}
-          git pull --progress -v --no-rebase gitcode ${{ github.ref_name }} --tags --verbose || echo 远端不存在${{ github.ref_name }}分支;
-          git push -u gitcode ${{ github.ref_name }} --tags --verbose
-          fi
-  
-  sync-framagit:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # 为了 git pull --unshallow，我们需要获取所有的提交历史
-
-      - name: Set up Git user
-        run: |
-          git config --global user.email "wangfj11@foxmail.com"
-          git config --global user.name "AlianBlank"
-
-      - name: Set SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.FRAMAGIT_ID_RSA }}" >> ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          eval $(ssh-agent -s) && ssh-add ~/.ssh/id_rsa
-          # 信任域名
-          ssh-keyscan -H framagit.org >> ~/.ssh/known_hosts
-      # 查看当前分支
-      - name: Check current branch
-        run: echo 当前分支：${{ github.ref_name }} ${{ github.Repository }}
-      # 查看远端 地址
-      - name: echo git url
-        run: echo git@framagit.org:${{ github.Repository }}.git
-
-      # 添加远端
-      - name: add remote url
-        run: git remote add framagit "git@framagit.org:${{ github.Repository }}.git"
-
-      # 获取
-      - name: fetch
-        run: git fetch --prune framagit --tags --verbose
-
-      # 拉取
-      - name: pull and push
-        run: | 
-          if [ "${{ github.ref_name }}" ]; then
-          git checkout ${{ github.ref_name }}
-          git pull --progress -v --no-rebase framagit ${{ github.ref_name }} --tags --verbose || echo 远端不存在${{ github.ref_name }}分支;
-          git push -u framagit ${{ github.ref_name }} --tags --verbose
-          fi
+          for branch in $(git branch -r | grep "upstream/" | sed 's/upstream\///'); do
+            echo "🔄 Syncing branch: $branch"
+            git checkout -B $branch upstream/$branch
+            git push origin $branch --force
+          done
